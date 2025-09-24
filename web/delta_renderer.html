@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+
+
+       <!-- Quill.js CSS -->
+       <link href="https://cdn.jsdelivr.net/npm/quill@2/dist/quill.snow.css" rel="stylesheet">
+
+    
+       <!-- Quill Better Table CSS -->
+       <link href="https://cdn.jsdelivr.net/npm/quill-table-better@1/dist/quill-table-better.css" rel="stylesheet">
+    <style>
+        table,
+        td,
+        th {
+            border: 1px solid black;
+            border-collapse: collapse;
+
+        }
+       
+.ql-editor ol li {
+    list-style-type: decimal;
+    padding-left: 0;
+}
+
+.ql-editor ul li {
+    list-style-type: disc;
+    padding-left: 0;
+    margin: 0;
+}
+
+.ql-editor ul {
+    margin: 0;
+}
+
+        table tbody tr td p {
+            margin: 0;
+            padding: 0;
+        }
+
+        p {
+            margin: 0;
+            padding: 0;
+        }
+    </style>
+</head>
+
+<body>
+
+
+    <div id="viewer" class="ql-editor"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/quill@2/dist/quill.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/quill-table-better@1/dist/quill-table-better.js"></script>
+    <script>
+        // Register the module just like in the editor
+        Quill.register({
+            'modules/better-table': QuillTableBetter
+        }, true);
+
+       
+
+        window.addEventListener('message', function (event) {
+            // Only process messages from the parent window (Flutter)
+            if (event.source !== window.parent) {
+                return;
+            }
+            console.log('event.data: ', event.data);
+
+            try {
+                document.getElementById('viewer').innerHTML = event.data;
+            } catch (e) {
+                // Handle plain string messages
+               
+            }
+        });
+        // Create a Quill instance in read-only mode
+        
+        // Load your saved Delta
+
+    </script>
+
+
+</body>
+
+</html>
