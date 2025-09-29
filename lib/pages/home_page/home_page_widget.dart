@@ -92,6 +92,9 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                 child: ElevatedButton(
                     child: Text('Download as HTML'),
                     onPressed: () {
+                      _model.htmlString =
+                          '''<style>table,td,th{border:1px solid #000;border-collapse:collapse}.ql-editor ol li{list-style-type:decimal;padding-left:0}.ql-editor ul li{list-style-type:disc;padding-left:0;margin:0}.ql-editor ul{margin:0}table tbody tr td p{margin:0;padding:0}p{margin:0;padding:0}</style>${_model.htmlString}''';
+                      safeSetState(() {});
                       final htmlContent = _model.htmlString ?? '';
                       final bytes = utf8.encode(htmlContent);
                       final blob = html.Blob([bytes], 'text/html');
