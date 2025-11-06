@@ -162,6 +162,39 @@
             margin-top: 0;
             color: #856404;
         }
+        
+        /* Format Painter button styling */
+        .ql-format-painter {
+            position: relative;
+        }
+        
+        .ql-format-painter.ql-active {
+            background-color: #e3f2fd !important;
+        }
+        
+        .ql-format-painter.ql-active::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(33, 150, 243, 0.2);
+            border-radius: 2px;
+            pointer-events: none;
+        }
+        
+        /* Format Painter icon (paintbrush SVG) */
+        .ql-format-painter svg {
+            display: inline-block;
+            vertical-align: middle;
+            width: 18px;
+            height: 18px;
+        }
+        
+        .ql-format-painter::before {
+            content: '';
+        }
     </style>
 </head>
 <body>
@@ -178,8 +211,130 @@
   'modules/table-better': QuillTableBetter
 }, true);
 
+// Format Painter custom handler
+const FormatPainter = {
+  storedFormat: null,
+  isActive: false,
+  
+  copyFormat() {
+    const selection = editor.getSelection(true);
+    if (!selection) {
+      return false;
+    }
+    
+    // Get the format at the selection
+    const format = editor.getFormat(selection);
+    
+    // Store the format (filter out attributes we don't want to copy)
+    this.storedFormat = {};
+    const attributesToCopy = [
+      'bold', 'italic', 'underline', 'strike',
+      'color', 'background',
+      'font', 'size',
+      'script', 'link',
+      'header', 'align',
+      'blockquote', 'code-block',
+      'list', 'indent', 'direction'
+    ];
+    
+    attributesToCopy.forEach(attr => {
+      if (format[attr] !== undefined && format[attr] !== null && format[attr] !== '') {
+        this.storedFormat[attr] = format[attr];
+      }
+    });
+    
+    // If we have any format to copy, activate
+    if (Object.keys(this.storedFormat).length > 0) {
+      this.isActive = true;
+      this.updateButtonState();
+      return true;
+    }
+    
+    return false;
+  },
+  
+  applyFormat() {
+    if (!this.storedFormat || !this.isActive) {
+      return false;
+    }
+    
+    const selection = editor.getSelection(true);
+    if (!selection || selection.length === 0) {
+      return false;
+    }
+    
+    // Apply the stored format to the current selection
+    Object.keys(this.storedFormat).forEach(attr => {
+      const value = this.storedFormat[attr];
+      editor.formatText(selection.index, selection.length, attr, value, Quill.sources.USER);
+    });
+    
+    // Deactivate after applying (single-use mode)
+    this.isActive = false;
+    this.updateButtonState();
+    return true;
+  },
+  
+  updateButtonState() {
+    setTimeout(() => {
+      const button = document.querySelector('.ql-format-painter');
+      if (button) {
+        if (this.isActive) {
+          button.classList.add('ql-active');
+          button.title = 'Format Painter Active - Select text and click to apply format';
+        } else {
+          button.classList.remove('ql-active');
+          button.title = 'Format Painter - Select formatted text and click to copy format';
+        }
+      }
+    }, 50);
+  },
+  
+  handleClick() {
+    const selection = editor.getSelection(true);
+    
+    if (this.isActive) {
+      // Format painter is active - apply format to current selection
+      if (selection && selection.length > 0) {
+        this.applyFormat();
+      } else {
+        // No selection, deactivate
+        this.isActive = false;
+        this.updateButtonState();
+      }
+    } else {
+      // Format painter is not active - copy format from current selection
+      if (selection && selection.length > 0) {
+        this.copyFormat();
+      } else if (selection) {
+        // No text selected, try to get format at cursor position
+        const format = editor.getFormat(selection);
+        if (Object.keys(format).length > 0) {
+          this.storedFormat = {};
+          const attributesToCopy = [
+            'bold', 'italic', 'underline', 'strike',
+            'color', 'background', 'font', 'size',
+            'script', 'link', 'header', 'align',
+            'blockquote', 'code-block', 'list', 'indent', 'direction'
+          ];
+          attributesToCopy.forEach(attr => {
+            if (format[attr] !== undefined && format[attr] !== null && format[attr] !== '') {
+              this.storedFormat[attr] = format[attr];
+            }
+          });
+          if (Object.keys(this.storedFormat).length > 0) {
+            this.isActive = true;
+            this.updateButtonState();
+          }
+        }
+      }
+    }
+  }
+};
+
 const toolbarOptions = [
   ['bold', 'italic', 'underline', 'strike'],        // toggled buttons
+  ['format-painter'],                                // format painter button
   ['blockquote', 'code-block'],
   ['link', 'image', 'video', 'formula'],
 
@@ -203,7 +358,14 @@ const toolbarOptions = [
 const options = {
   theme: 'snow',
   modules: {
-    toolbar: toolbarOptions,
+    toolbar: {
+      container: toolbarOptions,
+      handlers: {
+        'format-painter': function() {
+          FormatPainter.handleClick();
+        }
+      }
+    },
     table: false,
     'table-better': {
       toolbarTable: true,
@@ -237,6 +399,7 @@ function addTooltipsToToolbar() {
       'ql-italic': 'Italic (Ctrl+I)',
       'ql-underline': 'Underline (Ctrl+U)',
       'ql-strike': 'Strikethrough',
+      'ql-format-painter': 'Format Painter',
       'ql-blockquote': 'Blockquote',
       'ql-code-block': 'Code Block',
       'ql-link': 'Insert Link',
@@ -325,6 +488,21 @@ function addTooltipsToToolbar() {
 
 // Initialize tooltips after editor is ready
 addTooltipsToToolbar();
+
+// Add format painter icon after toolbar is created
+setTimeout(() => {
+  const formatPainterButton = document.querySelector('.ql-format-painter');
+  if (formatPainterButton && !formatPainterButton.querySelector('svg')) {
+    // Add paintbrush SVG icon
+    formatPainterButton.innerHTML = `
+      <svg viewBox="0 0 18 18">
+        <path d="M13.5 2.5L15.5 4.5L6.5 13.5L4.5 11.5L13.5 2.5Z" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M3.5 15.5L4.5 14.5L5.5 15.5L4.5 16.5L3.5 15.5Z" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M2.5 12.5L3.5 13.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    `;
+  }
+}, 150);
 
 let delta = null;
 let html = '';
@@ -467,6 +645,18 @@ editor.on('text-change', function(delta, oldDelta, source) {
     contentChangeTimeout = setTimeout(() => {
     
     }, 1000); // Wait 1 second after last change
+  }
+});
+
+// Handle selection changes to apply format when format painter is active
+editor.on('selection-change', function(range, oldRange, source) {
+  if (FormatPainter.isActive && range && range.length > 0) {
+    // Format painter is active and user has selected text
+    // The format will be applied when they click the button again
+    // Or we can auto-apply on selection change (uncomment below if preferred)
+    // FormatPainter.applyFormat();
+  } else if (FormatPainter.isActive && (!range || range.length === 0)) {
+    // Selection cleared, keep format painter active for next selection
   }
 });
 
