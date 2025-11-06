@@ -217,6 +217,115 @@ const options = {
 
 const editor = new Quill('#root', options);
 
+// Add tooltips to all toolbar items
+function addTooltipsToToolbar() {
+  const toolbar = editor.getModule('toolbar');
+  const toolbarElement = toolbar.container;
+  
+  // Function to add tooltip to an element
+  function setTooltip(element, text) {
+    if (element && !element.title) {
+      element.title = text;
+    }
+  }
+  
+  // Add tooltips after a short delay to ensure DOM is ready
+  setTimeout(() => {
+    // Simple buttons with direct tooltips
+    const buttonTooltips = {
+      'ql-bold': 'Bold (Ctrl+B)',
+      'ql-italic': 'Italic (Ctrl+I)',
+      'ql-underline': 'Underline (Ctrl+U)',
+      'ql-strike': 'Strikethrough',
+      'ql-blockquote': 'Blockquote',
+      'ql-code-block': 'Code Block',
+      'ql-link': 'Insert Link',
+      'ql-image': 'Insert Image',
+      'ql-video': 'Insert Video',
+      'ql-formula': 'Insert Formula',
+      'ql-clean': 'Remove Formatting',
+      'ql-table-better': 'Insert Table'
+    };
+    
+    // Add tooltips to simple buttons
+    Object.keys(buttonTooltips).forEach(className => {
+      toolbarElement.querySelectorAll(`button.${className}`).forEach(button => {
+        setTooltip(button, buttonTooltips[className]);
+      });
+    });
+    
+    // Header buttons
+    toolbarElement.querySelectorAll('button.ql-header').forEach(button => {
+      const value = button.getAttribute('value');
+      if (value === '1') setTooltip(button, 'Heading 1');
+      else if (value === '2') setTooltip(button, 'Heading 2');
+      else setTooltip(button, 'Heading');
+    });
+    
+    // List buttons
+    toolbarElement.querySelectorAll('button.ql-list').forEach(button => {
+      const value = button.getAttribute('value');
+      if (value === 'ordered') setTooltip(button, 'Numbered List');
+      else if (value === 'bullet') setTooltip(button, 'Bullet List');
+      else if (value === 'check') setTooltip(button, 'Check List');
+      else setTooltip(button, 'List');
+    });
+    
+    // Script buttons (subscript/superscript)
+    toolbarElement.querySelectorAll('button.ql-script').forEach(button => {
+      const value = button.getAttribute('value');
+      if (value === 'sub') setTooltip(button, 'Subscript');
+      else if (value === 'super') setTooltip(button, 'Superscript');
+    });
+    
+    // Indent buttons
+    toolbarElement.querySelectorAll('button.ql-indent').forEach(button => {
+      const value = button.getAttribute('value');
+      if (value === '-1') setTooltip(button, 'Decrease Indent');
+      else if (value === '+1') setTooltip(button, 'Increase Indent');
+    });
+    
+    // Direction button
+    toolbarElement.querySelectorAll('button.ql-direction').forEach(button => {
+      if (button.getAttribute('value') === 'rtl') {
+        setTooltip(button, 'Right to Left');
+      }
+    });
+    
+    // Dropdown pickers (size, header, color, background, font, align)
+    const pickerTooltips = {
+      'ql-size': 'Text Size',
+      'ql-header': 'Heading',
+      'ql-color': 'Text Color',
+      'ql-background': 'Background Color',
+      'ql-font': 'Font Family',
+      'ql-align': 'Text Alignment'
+    };
+    
+    Object.keys(pickerTooltips).forEach(pickerClass => {
+      const picker = toolbarElement.querySelector(`.ql-picker.${pickerClass}`);
+      if (picker) {
+        const label = picker.querySelector('.ql-picker-label');
+        if (label) setTooltip(label, pickerTooltips[pickerClass]);
+      }
+    });
+    
+    // Fallback: add tooltips to any remaining buttons
+    toolbarElement.querySelectorAll('button').forEach(button => {
+      if (!button.title) {
+        const classes = Array.from(button.classList);
+        const qlClass = classes.find(cls => cls.startsWith('ql-') && cls !== 'ql-picker-label');
+        if (qlClass && buttonTooltips[qlClass]) {
+          setTooltip(button, buttonTooltips[qlClass]);
+        }
+      }
+    });
+  }, 100);
+}
+
+// Initialize tooltips after editor is ready
+addTooltipsToToolbar();
+
 let delta = null;
 let html = '';
 let messageId = 0;
