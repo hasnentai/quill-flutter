@@ -12,6 +12,7 @@ class HomePageModel extends FlutterFlowModel<HomePageWidget> {
   ///  Local state fields for this page.
 
   String? htmlString = ' ';
+  String? selectedDropdownValue;
 
   @override
   void initState(BuildContext context) {}

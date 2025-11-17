@@ -680,6 +680,31 @@ function handleFlutterCommand(data) {
       }
       break;
       
+    case 'insertText':
+      const text = data.text || '';
+      if (text) {
+        const selection = editor.getSelection(true);
+        if (selection) {
+          // Insert text at the current cursor position
+          editor.insertText(selection.index, text, Quill.sources.USER);
+          // Move cursor to after the inserted text
+          editor.setSelection(selection.index + text.length, Quill.sources.USER);
+        } else {
+          // No selection, insert at the end
+          const length = editor.getLength();
+          editor.insertText(length - 1, text, Quill.sources.USER);
+          editor.setSelection(length - 1 + text.length, Quill.sources.USER);
+        }
+        sendJsonToFlutter({
+          type: 'response',
+          action: 'insertText',
+          success: true,
+          message: 'Text inserted successfully',
+          timestamp: Date.now()
+        });
+      }
+      break;
+      
     default:
       sendJsonToFlutter({
         type: 'response',

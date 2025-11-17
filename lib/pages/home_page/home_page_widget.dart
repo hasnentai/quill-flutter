@@ -22,6 +22,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
   late HomePageModel _model;
 
   final scaffoldKey = GlobalKey<ScaffoldState>();
+  final GlobalKey<State<custom_widgets.QuillEditor>> editorKey = GlobalKey<State<custom_widgets.QuillEditor>>();
 
   @override
   void initState() {
@@ -74,18 +75,60 @@ class _HomePageWidgetState extends State<HomePageWidget> {
           child: Column(
             mainAxisSize: MainAxisSize.max,
             children: [
-              Container(
-                width: MediaQuery.sizeOf(context).width * 1.0,
-                height: 500.0,
-                child: custom_widgets.QuillEditor(
-                  width: MediaQuery.sizeOf(context).width * 1.0,
-                  height: 500.0,
-                  onMessageReceived: (message) async {
-                    _model.htmlString = message;
-                    print(_model.htmlString);
-                    safeSetState(() {});
-                  },
-                ),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Container(
+                      width: MediaQuery.sizeOf(context).width * 0.8,
+                      height: 500.0,
+                      child: custom_widgets.QuillEditor(
+                        key: editorKey,
+                        width: MediaQuery.sizeOf(context).width * 0.8,
+                        height: 500.0,
+                        onMessageReceived: (message) async {
+                          _model.htmlString = message;
+                          print(_model.htmlString);
+                          safeSetState(() {});
+                        },
+                      ),
+                    ),
+                  ),
+                  Container(
+                    width: MediaQuery.sizeOf(context).width * 0.2,
+                    padding: EdgeInsets.all(16.0),
+                    child: DropdownButton<String>(
+                      value: _model.selectedDropdownValue,
+                      hint: Text('Select text to insert'),
+                      isExpanded: true,
+                      items: [
+                        'Hello',
+                        'World',
+                        'Flutter',
+                        'Quill',
+                        'Editor',
+                        'Custom Text',
+                      ].map<DropdownMenuItem<String>>((String value) {
+                        return DropdownMenuItem<String>(
+                          value: value,
+                          child: Text(value),
+                        );
+                      }).toList(),
+                      onChanged: (String? newValue) {
+                        if (newValue != null) {
+                          _model.selectedDropdownValue = newValue;
+                          // Insert text at cursor position
+                          final state = editorKey.currentState;
+                          if (state != null) {
+                            // Access the insertText method through the state
+                            (state as dynamic).insertText(newValue);
+                          }
+                          safeSetState(() {});
+                        }
+                      },
+                    ),
+                  ),
+                ],
               ),
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 12.0),
