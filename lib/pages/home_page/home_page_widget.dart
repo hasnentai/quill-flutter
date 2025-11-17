@@ -6,6 +6,7 @@ import '/custom_code/widgets/index.dart' as custom_widgets;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'home_page_model.dart';
+import 'global_key.dart';
 export 'home_page_model.dart';
 
 class HomePageWidget extends StatefulWidget {
@@ -22,7 +23,6 @@ class _HomePageWidgetState extends State<HomePageWidget> {
   late HomePageModel _model;
 
   final scaffoldKey = GlobalKey<ScaffoldState>();
-  final GlobalKey<State<custom_widgets.QuillEditor>> editorKey = GlobalKey<State<custom_widgets.QuillEditor>>();
 
   @override
   void initState() {
@@ -88,7 +88,6 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                         height: 500.0,
                         onMessageReceived: (message) async {
                           _model.htmlString = message;
-                          print(_model.htmlString);
                           safeSetState(() {});
                         },
                       ),
