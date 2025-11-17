@@ -83,6 +83,13 @@ class _QuillEditorState extends State<QuillEditor> {
     _iframe?.contentWindow?.postMessage(jsonString, '*');
   }
 
+  void insertText(String text) {
+    sendJsonToIframe({
+      'action': 'insertText',
+      'text': text,
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     print('widget.realOnly: ${widget.realOnly}');
