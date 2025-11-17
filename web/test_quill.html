@@ -195,6 +195,39 @@
         .ql-format-painter::before {
             content: '';
         }
+        
+        /* Image resize functionality */
+        .ql-editor img.ql-image-selected {
+            outline: 2px solid #007bff !important;
+            outline-offset: 2px;
+            cursor: move;
+            position: relative;
+        }
+        
+        .ql-image-resize-handle {
+            position: fixed;
+            width: 14px;
+            height: 14px;
+            background: #007bff;
+            border: 2px solid white;
+            border-radius: 50%;
+            cursor: nwse-resize;
+            display: none;
+            z-index: 10000;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            transition: transform 0.2s, background 0.2s;
+            pointer-events: auto;
+        }
+        
+        .ql-image-resize-handle:hover {
+            transform: scale(1.3);
+            background: #0056b3;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.4);
+        }
+        
+        .ql-editor {
+            position: relative;
+        }
     </style>
 </head>
 <body>
@@ -518,6 +551,38 @@ function sendMessageToFlutter(message) {
   }
 }
 
+// Function to clean HTML by removing selection styles from images
+function cleanExportedHTML(html) {
+  if (!html) return html;
+  
+  // Create a temporary div to parse and clean the HTML
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = html;
+  
+  // Find all images and remove selection styles
+  const images = tempDiv.querySelectorAll('img');
+  images.forEach(img => {
+    // Remove the selection class
+    img.classList.remove('ql-image-selected');
+    
+    // Remove inline outline styles
+    if (img.style.outline) {
+      img.style.outline = '';
+    }
+    if (img.style.outlineOffset) {
+      img.style.outlineOffset = '';
+    }
+    
+    // If style attribute is now empty, remove it
+    if (img.style.cssText.trim() === '') {
+      img.removeAttribute('style');
+    }
+  });
+  
+  // Return the cleaned HTML
+  return tempDiv.innerHTML;
+}
+
 // Function to send JSON data to Flutter
 function sendJsonToFlutter(data) {
   // Throttle messages to prevent spam
@@ -527,6 +592,14 @@ function sendJsonToFlutter(data) {
     return;
   }
   lastMessageTime = now;
+  
+  // Clean HTML if present before sending
+  if (data.html) {
+    data.html = cleanExportedHTML(data.html);
+  }
+  if (data.data && data.data.html) {
+    data.data.html = cleanExportedHTML(data.data.html);
+  }
   
   // Add unique ID to prevent loops
   data.messageId = ++messageId;
@@ -659,6 +732,288 @@ editor.on('selection-change', function(range, oldRange, source) {
     // Selection cleared, keep format painter active for next selection
   }
 });
+
+// Image resize functionality
+function initImageResize() {
+  const editorContainer = editor.container;
+  const editorElement = editorContainer.querySelector('.ql-editor');
+  
+  if (!editorElement) {
+    console.warn('Editor element not found, retrying image resize initialization...');
+    setTimeout(initImageResize, 200);
+    return;
+  }
+  
+  // Track resize state
+  let isResizing = false;
+  let currentImage = null;
+  let resizeHandle = null;
+  let startX = 0;
+  let startY = 0;
+  let startWidth = 0;
+  let startHeight = 0;
+  let aspectRatio = 1;
+  
+  // Create resize handle
+  function createResizeHandle() {
+    if (resizeHandle && resizeHandle.parentNode) {
+      return resizeHandle;
+    }
+    // Remove old handle if it exists but is orphaned
+    if (resizeHandle && !resizeHandle.parentNode) {
+      resizeHandle = null;
+    }
+    
+    const handle = document.createElement('div');
+    handle.className = 'ql-image-resize-handle';
+    // Try appending to body first (for fixed positioning)
+    // If that doesn't work well, we can fall back to editorElement
+    try {
+      document.body.appendChild(handle);
+    } catch (e) {
+      // Fallback to editor element if body append fails
+      editorElement.appendChild(handle);
+    }
+    resizeHandle = handle;
+    return handle;
+  }
+  
+  // Position resize handle at bottom-right corner of image
+  function positionResizeHandle(img, handle) {
+    if (!img || !handle) return;
+    
+    const imgRect = img.getBoundingClientRect();
+    const editorRect = editorElement.getBoundingClientRect();
+    
+    // Check if handle is in body or editorElement
+    const isInBody = handle.parentNode === document.body;
+    
+    if (isInBody) {
+      // Use fixed positioning relative to viewport
+      handle.style.position = 'fixed';
+      handle.style.left = (imgRect.right - 7) + 'px'; // 7px to center the 14px handle
+      handle.style.top = (imgRect.bottom - 7) + 'px';
+    } else {
+      // Use absolute positioning relative to editor
+      handle.style.position = 'absolute';
+      const scrollLeft = editorElement.scrollLeft;
+      const scrollTop = editorElement.scrollTop;
+      handle.style.left = (imgRect.right - editorRect.left - 7 + scrollLeft) + 'px';
+      handle.style.top = (imgRect.bottom - editorRect.top - 7 + scrollTop) + 'px';
+    }
+    
+    handle.style.right = 'auto';
+    handle.style.bottom = 'auto';
+    handle.style.display = 'block';
+    handle.style.visibility = 'visible';
+    handle.style.opacity = '1';
+    
+    console.log('Positioning handle:', {
+      imgRect: imgRect,
+      editorRect: editorRect,
+      isInBody: isInBody,
+      left: handle.style.left,
+      top: handle.style.top,
+      position: handle.style.position,
+      display: handle.style.display,
+      visibility: handle.style.visibility
+    });
+  }
+  
+  // Remove resize handle
+  function removeResizeHandle() {
+    if (resizeHandle) {
+      resizeHandle.style.display = 'none';
+    }
+  }
+  
+  // Update image size in Quill delta
+  function updateImageSize(img, width, height) {
+    // Update the DOM directly first for immediate visual feedback
+    img.style.width = width + 'px';
+    img.style.height = height + 'px';
+    img.setAttribute('width', width);
+    img.setAttribute('height', height);
+    
+    // Try to update through Quill's API
+    try {
+      const blot = Quill.find(img);
+      if (blot) {
+        const index = editor.getIndex(blot);
+        if (index !== null) {
+          // Quill stores images as embeds, so we need to update the embed's attributes
+          // Try using formatText for width/height (may not work if not registered)
+          // If that doesn't work, we'll rely on the DOM attributes which will be preserved in HTML output
+          try {
+            editor.formatText(index, 1, 'width', width + 'px', Quill.sources.USER);
+            editor.formatText(index, 1, 'height', height + 'px', Quill.sources.USER);
+          } catch (e) {
+            // Width/height might not be registered formats, that's okay
+            // The DOM attributes will be preserved in the HTML output
+            console.log('Width/height format not registered, using DOM attributes');
+          }
+        }
+      }
+    } catch (e) {
+      // If Quill API fails, DOM updates will still work
+      console.log('Error updating through Quill API:', e);
+    }
+  }
+  
+  // Handle mouse down on resize handle
+  function handleResizeStart(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!currentImage) return;
+    
+    isResizing = true;
+    startX = e.clientX;
+    startY = e.clientY;
+    startWidth = currentImage.offsetWidth || currentImage.width;
+    startHeight = currentImage.offsetHeight || currentImage.height;
+    aspectRatio = startWidth / startHeight;
+    
+    // Prevent text selection during resize
+    document.body.style.userSelect = 'none';
+    document.body.style.cursor = 'nwse-resize';
+    
+    document.addEventListener('mousemove', handleResize);
+    document.addEventListener('mouseup', handleResizeEnd);
+  }
+  
+  // Handle mouse move during resize
+  function handleResize(e) {
+    if (!isResizing || !currentImage) return;
+    
+    const deltaX = e.clientX - startX;
+    const deltaY = e.clientY - startY;
+    
+    // Calculate new dimensions maintaining aspect ratio
+    let newWidth = startWidth + deltaX;
+    let newHeight = startHeight + deltaY;
+    
+    // Maintain aspect ratio based on which direction has more movement
+    if (Math.abs(deltaX) > Math.abs(deltaY)) {
+      newHeight = newWidth / aspectRatio;
+    } else {
+      newWidth = newHeight * aspectRatio;
+    }
+    
+    // Set minimum and maximum size constraints
+    const minSize = 50;
+    const maxSize = 2000;
+    newWidth = Math.max(minSize, Math.min(maxSize, newWidth));
+    newHeight = Math.max(minSize, Math.min(maxSize, newHeight));
+    
+    // Update image dimensions visually
+    currentImage.style.width = newWidth + 'px';
+    currentImage.style.height = newHeight + 'px';
+    
+    // Update handle position
+    if (resizeHandle) {
+      positionResizeHandle(currentImage, resizeHandle);
+    }
+  }
+  
+  // Handle mouse up - finalize resize
+  function handleResizeEnd(e) {
+    if (!isResizing || !currentImage) return;
+    
+    isResizing = false;
+    
+    // Restore text selection
+    document.body.style.userSelect = '';
+    document.body.style.cursor = '';
+    
+    // Update Quill delta with final dimensions
+    const finalWidth = Math.round(parseInt(currentImage.style.width) || currentImage.offsetWidth);
+    const finalHeight = Math.round(parseInt(currentImage.style.height) || currentImage.offsetHeight);
+    
+    updateImageSize(currentImage, finalWidth, finalHeight);
+    
+    // Clean up
+    document.removeEventListener('mousemove', handleResize);
+    document.removeEventListener('mouseup', handleResizeEnd);
+    
+    // Content change will be automatically triggered by formatText with Quill.sources.USER
+  }
+  
+  // Handle image click - show resize handle
+  editorElement.addEventListener('click', function(e) {
+    // Don't interfere if we're resizing
+    if (isResizing) return;
+    
+    if (e.target.tagName === 'IMG') {
+      // Remove previous selection
+      editorElement.querySelectorAll('img.ql-image-selected').forEach(img => {
+        img.classList.remove('ql-image-selected');
+        img.style.outline = '';
+        img.style.outlineOffset = '';
+      });
+      
+      // Select current image
+      e.target.classList.add('ql-image-selected');
+      e.target.style.outline = '2px solid #007bff';
+      e.target.style.outlineOffset = '2px';
+      currentImage = e.target;
+      
+      // Create and position resize handle
+      const handle = createResizeHandle();
+      
+      // Small delay to ensure image is fully rendered
+      setTimeout(function() {
+        positionResizeHandle(e.target, handle);
+        console.log('Image selected, handle positioned at:', handle.style.left, handle.style.top);
+        console.log('Handle display:', handle.style.display);
+        console.log('Handle element:', handle);
+      }, 10);
+      
+      // Add event listener to handle if not already added
+      handle.onmousedown = handleResizeStart;
+    } else {
+      // Click outside image - remove selection
+      editorElement.querySelectorAll('img.ql-image-selected').forEach(img => {
+        img.classList.remove('ql-image-selected');
+        img.style.outline = '';
+        img.style.outlineOffset = '';
+      });
+      currentImage = null;
+      removeResizeHandle();
+    }
+  });
+  
+  // Handle selection change - remove image selection when text is selected
+  editor.on('selection-change', function(range) {
+    if (range && range.length > 0) {
+      // Text is selected, remove image selection
+      editorElement.querySelectorAll('img.ql-image-selected').forEach(img => {
+        img.classList.remove('ql-image-selected');
+        img.style.outline = '';
+        img.style.outlineOffset = '';
+      });
+      currentImage = null;
+      removeResizeHandle();
+    }
+  });
+  
+  // Update handle position on scroll
+  editorElement.addEventListener('scroll', function() {
+    if (currentImage && resizeHandle && resizeHandle.style.display !== 'none') {
+      positionResizeHandle(currentImage, resizeHandle);
+    }
+  });
+  
+  // Handle window resize
+  window.addEventListener('resize', function() {
+    if (currentImage && resizeHandle && resizeHandle.style.display !== 'none') {
+      positionResizeHandle(currentImage, resizeHandle);
+    }
+  });
+}
+
+// Initialize image resize after editor is ready
+setTimeout(initImageResize, 300);
 
   
 
