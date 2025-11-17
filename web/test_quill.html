@@ -551,6 +551,38 @@ function sendMessageToFlutter(message) {
   }
 }
 
+// Function to clean HTML by removing selection styles from images
+function cleanExportedHTML(html) {
+  if (!html) return html;
+  
+  // Create a temporary div to parse and clean the HTML
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = html;
+  
+  // Find all images and remove selection styles
+  const images = tempDiv.querySelectorAll('img');
+  images.forEach(img => {
+    // Remove the selection class
+    img.classList.remove('ql-image-selected');
+    
+    // Remove inline outline styles
+    if (img.style.outline) {
+      img.style.outline = '';
+    }
+    if (img.style.outlineOffset) {
+      img.style.outlineOffset = '';
+    }
+    
+    // If style attribute is now empty, remove it
+    if (img.style.cssText.trim() === '') {
+      img.removeAttribute('style');
+    }
+  });
+  
+  // Return the cleaned HTML
+  return tempDiv.innerHTML;
+}
+
 // Function to send JSON data to Flutter
 function sendJsonToFlutter(data) {
   // Throttle messages to prevent spam
@@ -560,6 +592,14 @@ function sendJsonToFlutter(data) {
     return;
   }
   lastMessageTime = now;
+  
+  // Clean HTML if present before sending
+  if (data.html) {
+    data.html = cleanExportedHTML(data.html);
+  }
+  if (data.data && data.data.html) {
+    data.data.html = cleanExportedHTML(data.data.html);
+  }
   
   // Add unique ID to prevent loops
   data.messageId = ++messageId;
