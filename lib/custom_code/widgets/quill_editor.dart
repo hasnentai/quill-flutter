@@ -12,12 +12,7 @@ import 'dart:convert';
 
 class QuillEditor extends StatefulWidget {
   const QuillEditor(
-      {super.key,
-      this.width,
-      this.height,
-      this.onMessageReceived,
-      this.realOnly = false,
-      this.htmlString});
+      {super.key, this.width, this.height, this.onMessageReceived, this.realOnly = false, this.htmlString});
 
   final double? width;
   final double? height;
@@ -43,8 +38,7 @@ class _QuillEditorState extends State<QuillEditor> {
 
   void _registerViewFactory() {
     // ignore: undefined_prefixed_name
-    ui.platformViewRegistry.registerViewFactory('inline-html-$_viewId',
-        (int viewId) {
+    ui.platformViewRegistry.registerViewFactory('inline-html-$_viewId', (int viewId) {
       _iframe = html.IFrameElement()
         ..src = '/test_quill.html'
         ..style.border = '0'
@@ -123,8 +117,7 @@ class _ViewOnlyQuillEditorState extends State<ViewOnlyQuillEditor> {
 
   void _registerViewFactory() {
     // ignore: undefined_prefixed_name
-    ui.platformViewRegistry.registerViewFactory('viewOnly-html-$_viewId',
-        (int viewId) {
+    ui.platformViewRegistry.registerViewFactory('viewOnly-html-$_viewId', (int viewId) {
       _iframe = html.IFrameElement()
         ..src = '/delta_renderer.html'
         ..style.border = '0'
