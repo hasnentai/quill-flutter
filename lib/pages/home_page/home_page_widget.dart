@@ -139,6 +139,34 @@ class _HomePageWidgetState extends State<HomePageWidget> {
 <html>
   <head>
     <meta charset="UTF-8">
+     <link href="https://cdn.jsdelivr.net/npm/quill@2/dist/quill.snow.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/quill-table-better@1/dist/quill-table-better.css" rel="stylesheet">
+    <style>
+      table, td, th {
+        border: 1px solid black;
+        border-collapse: collapse;
+      }
+      .ql-editor ol li {
+        list-style-type: decimal;
+        padding-left: 0;
+      }
+      .ql-editor ul li {
+        list-style-type: disc;
+        padding-left: 0;
+        margin: 0;
+      }
+      .ql-editor ul {
+        margin: 0;
+      }
+      table tbody tr td p {
+        margin: 0;
+        padding: 0;
+      }
+      p {
+        margin: 0;
+        padding: 0;
+      }
+    </style>
   </head>
   <body>
     <div class="ql-editor">
