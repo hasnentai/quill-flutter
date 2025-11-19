@@ -551,9 +551,43 @@ function sendMessageToFlutter(message) {
   }
 }
 
+// Function to convert line breaks (p tags) to br tags
+function convertLineBreaksToBr(html) {
+  if (!html) return html;
+  
+  // Use regex to convert p tags to br tags
+  // First, handle empty p tags
+  let result = html.replace(/<p[^>]*>\s*<\/p>/gi, '<br>');
+  
+  // Then, handle p tags with content
+  // This regex matches <p>...</p> and replaces with content + <br>
+  // Using a more sophisticated approach to handle nested tags
+  result = result.replace(/<p[^>]*>([\s\S]*?)<\/p>/gi, function(match, content) {
+    // Trim whitespace from content
+    const trimmedContent = content.trim();
+    
+    // If content is empty or only whitespace, return br
+    if (!trimmedContent) {
+      return '<br>';
+    }
+    
+    // Otherwise, return content followed by br
+    return content + '<br>';
+  });
+  
+  // Remove trailing br tags (we don't want br at the very end)
+  // But keep at least one if the original ended with a paragraph
+  result = result.replace(/(<br\s*\/?>)+$/gi, '');
+  
+  return result;
+}
+
 // Function to clean HTML by removing selection styles from images
 function cleanExportedHTML(html) {
   if (!html) return html;
+  
+  // First convert line breaks to br tags
+  html = convertLineBreaksToBr(html);
   
   // Create a temporary div to parse and clean the HTML
   const tempDiv = document.createElement('div');
