@@ -169,9 +169,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
     </style>
   </head>
   <body>
-    <div class="ql-editor">
-      ${_model.htmlString}
-    </div>
+    <div class="ql-editor">${_model.htmlString}</div>
   </body>
 </html>
 ''';
@@ -249,9 +247,7 @@ a.whiteclr, a.whiteclr:link, a.whiteclr:visited, a.whiteclr:hover, a.whiteclr:fo
       </tr>
 
       <tr>
-        <td>
-          ${_model.htmlString}
-        </td>
+        <td>${_model.htmlString}</td>
       </tr>
     
       <tr>

@@ -613,8 +613,13 @@ function cleanExportedHTML(html) {
     }
   });
   
-  // Return the cleaned HTML
-  return tempDiv.innerHTML;
+  // Get the innerHTML and trim again to ensure no leading/trailing whitespace
+  let cleaned = tempDiv.innerHTML.trim();
+  
+  // Remove any leading newlines or spaces that might have been added by the browser
+  cleaned = cleaned.replace(/^\s+/, '');
+  
+  return cleaned;
 }
 
 // Function to send JSON data to Flutter
