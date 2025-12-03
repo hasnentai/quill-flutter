@@ -108,12 +108,12 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                         hint: Text('Select text to insert'),
                         isExpanded: true,
                         items: [
-                          'Hello',
                           'World',
                           'Flutter',
                           'Quill',
                           'Editor',
                           'Custom Text',
+                          '<b>Sample HTML</b><br><ul><li>Item 1</li><li>Item 2</li></ul>',
                         ].map<DropdownMenuItem<String>>((String value) {
                           return DropdownMenuItem<String>(
                             value: value,
